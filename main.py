@@ -1,3 +1,6 @@
+import logging
+import os
+
 from flask import Flask
 from flask import request
 
@@ -41,3 +44,10 @@ def handle_move():
 @app.post("/end")
 def end():
     return "ok"
+
+if __name__ == "__main__":
+    logging.getLogger("werkzeug").setLevel(logging.ERROR)
+
+    print("Starting Battlesnake Server...")
+    port = int(os.environ.get("PORT", "8080"))
+    app.run(host="0.0.0.0", port=port, debug=True)
