@@ -31,6 +31,8 @@ def choose_move():
     my_head = data["you"]["head"]
     my_body = data["you"]["body"]
 
+    print(my_head)
+
     possible_moves = ["up", "down", "left", "right"]
     
     possible_moves = avoid_my_neck(my_head, my_body, possible_moves)

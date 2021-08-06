@@ -13,7 +13,7 @@ def handle_info():
     return {
             "apiversion": "1",
             "author": "cjdunteman",
-            "color": "#FFFFFF",
+            "color": "#9933ff",
             "head": "default",
             "tail": "default",
             }
