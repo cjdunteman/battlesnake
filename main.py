@@ -1,76 +1,99 @@
-import logging
-import os
+# Welcome to
+# __________         __    __  .__                               __
+# \______   \_____ _/  |__/  |_|  |   ____   ______ ____ _____  |  | __ ____
+#  |    |  _/\__  \\   __\   __\  | _/ __ \ /  ___//    \\__  \ |  |/ // __ \
+#  |    |   \ / __ \|  |  |  | |  |_\  ___/ \___ \|   |  \/ __ \|    <\  ___/
+#  |________/(______/__|  |__| |____/\_____>______>___|__(______/__|__\\_____>
+#
+# This file can be a nice home for your Battlesnake logic and helper functions.
+#
+# To get you started we've included code to prevent your Battlesnake from moving backwards.
+# For more info see docs.battlesnake.com
 
-from flask import Flask
-from flask import request
-
-import logic
+import random
+import typing
 
 
-app = Flask(__name__)
-
-
-@app.get("/")
-def handle_info():
-    """
-    This function is called when you register your Battlesnake on play.battlesnake.com
-    See https://docs.battlesnake.com/guides/getting-started#step-4-register-your-battlesnake
-    """
+# info is called when you create your Battlesnake on play.battlesnake.com
+# and controls your Battlesnake's appearance
+# TIP: If you open your Battlesnake URL in a browser you should see this data
+def info() -> typing.Dict:
     print("INFO")
-    return logic.get_info()
+
+    return {
+        "apiversion": "1",
+        "author": "",  # TODO: Your Battlesnake Username
+        "color": "#888888",  # TODO: Choose color
+        "head": "default",  # TODO: Choose head
+        "tail": "default",  # TODO: Choose tail
+    }
 
 
-@app.post("/start")
-def handle_start():
-    """
-    This function is called everytime your Battlesnake enters a game.
-    It's purely for informational purposes, you don't have to make any decisions here.
-    request.json contains information about the game that's about to be played.
-    """
-    data = request.get_json()
-
-    print(f"{data['game']['id']} START")
-    return "ok"
+# start is called when your Battlesnake begins a game
+def start(game_state: typing.Dict):
+    print("GAME START")
 
 
-@app.post("/move")
-def handle_move():
-    """
-    This function is called on every turn and is how your Battlesnake decides where to move.
-    Valid moves are "up", "down", "left", or "right".
-    """
-    data = request.get_json()
-
-    # TODO - look at the logic.py file to see how we decide what move to return!
-    move = logic.choose_move(data)
-
-    return {"move": move}
+# end is called when your Battlesnake finishes a game
+def end(game_state: typing.Dict):
+    print("GAME OVER\n")
 
 
-@app.post("/end")
-def handle_end():
-    """
-    This function is called when a game your Battlesnake was in has ended.
-    It's purely for informational purposes, you don't have to make any decisions here.
-    """
-    data = request.get_json()
+# move is called on every turn and returns your next move
+# Valid moves are "up", "down", "left", or "right"
+# See https://docs.battlesnake.com/api/example-move for available data
+def move(game_state: typing.Dict) -> typing.Dict:
 
-    print(f"{data['game']['id']} END")
-    return "ok"
+    is_move_safe = {"up": True, "down": True, "left": True, "right": True}
+
+    # We've included code to prevent your Battlesnake from moving backwards
+    my_head = game_state["you"]["body"][0]  # Coordinates of your head
+    my_neck = game_state["you"]["body"][1]  # Coordinates of your "neck"
+
+    if my_neck["x"] < my_head["x"]:  # Neck is left of head, don't move left
+        is_move_safe["left"] = False
+
+    elif my_neck["x"] > my_head["x"]:  # Neck is right of head, don't move right
+        is_move_safe["right"] = False
+
+    elif my_neck["y"] < my_head["y"]:  # Neck is below head, don't move down
+        is_move_safe["down"] = False
+
+    elif my_neck["y"] > my_head["y"]:  # Neck is above head, don't move up
+        is_move_safe["up"] = False
+
+    # TODO: Step 1 - Prevent your Battlesnake from moving out of bounds
+    # board_width = game_state['board']['width']
+    # board_height = game_state['board']['height']
+
+    # TODO: Step 2 - Prevent your Battlesnake from colliding with itself
+    # my_body = game_state['you']['body']
+
+    # TODO: Step 3 - Prevent your Battlesnake from colliding with other Battlesnakes
+    # opponents = game_state['board']['snakes']
+
+    # Are there any safe moves left?
+    safe_moves = []
+    for move, isSafe in is_move_safe.items():
+        if isSafe:
+            safe_moves.append(move)
+
+    if len(safe_moves) == 0:
+        print(f"MOVE {game_state['turn']}: No safe moves detected! Moving down")
+        return {"move": "down"}
+
+    # Choose a random move from the safe ones
+    next_move = random.choice(safe_moves)
+
+    # TODO: Step 4 - Move towards food instead of random, to regain health and survive longer
+    # food = game_state['board']['food']
+
+    print(f"MOVE {game_state['turn']}: {next_move}")
+    return {"move": next_move}
 
 
-@app.after_request
-def identify_server(response):
-    response.headers["Server"] = "BattlesnakeOfficial/starter-snake-python"
-    return response
-
-
+# Start server when `python main.py` is run
 if __name__ == "__main__":
-    logging.getLogger("werkzeug").setLevel(logging.ERROR)
+    from server import run_server
 
-    host = "0.0.0.0"
-    port = int(os.environ.get("PORT", "8080"))
-
-    print(f"\nRunning Battlesnake server at http://{host}:{port}")
-    app.env = 'development'
-    app.run(host=host, port=port, debug=True)
+    run_server({"info": info, "start": start, "move": move, "end": end})
